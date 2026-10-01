@@ -7,8 +7,12 @@ import streamlit as st
 from supabase import create_client, Client
 
 # --- CONFIGURAÇÃO DO SUPABASE ---
-SUPABASE_URL = "https://aaxicngdahpbunwlgjsj.supabase.co/rest/v1/"
-SUPABASE_KEY = "dQ27YvYvKA1WQkEFVg67cBrGRC/sA2JSwqAUsx5vO+6tLMfln23BxHRjm1otw3qe3ayucdINJIwS/k+meFBOew=="  # Cole aqui a sua chave anon / public
+SUPABASE_URL = "https://aaxicngdahpbunwlgjsj.supabase.co"
+# Insira sua chave JWT 'anon' (que começa com eyJhbGci...)
+SUPABASE_KEY = "SUA_CHAVE_ANON_LEGACY_AQUI"
+
+# Defina seu e-mail de Administrador Principal
+ADMIN_EMAIL = "seu-email-admin@gmail.com"
 
 @st.cache_resource
 def init_supabase() -> Client:
@@ -111,7 +115,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Inicialização da Sessão de Utilizador
+# Estado de Sessão
 if "user" not in st.session_state:
     st.session_state["user"] = None
 if "recent_tasks" not in st.session_state:
@@ -120,14 +124,14 @@ if "bambu_token" not in st.session_state:
     st.session_state["bambu_token"] = None
 
 # ==========================================
-# TELA DE LOGIN E CADASTRO (BLOQUEIO)
+# TELA DE LOGIN ÚNICA (SEM AUTO-CADASTRO)
 # ==========================================
 if st.session_state["user"] is None:
     st.markdown(
         """
-        <div style='text-align: center; padding: 30px 0 10px 0;'>
+        <div style='text-align: center; padding: 40px 0 20px 0;'>
             <h1 style='color: #E65100;'>🖨️ Bambu Filament Studio</h1>
-            <p style='color: #5D4037; font-size: 1.1rem;'>Aceda à sua conta para gerir o seu estoque de filamentos 3D</p>
+            <p style='color: #5D4037; font-size: 1.1rem;'>Acesso exclusivo para usuários autorizados</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -136,58 +140,29 @@ if st.session_state["user"] is None:
     _, col_center, _ = st.columns([1, 1.2, 1])
 
     with col_center:
-        # BOTÃO DE LOGIN COM O GOOGLE
-        if st.button("🌐 Entrar com a Conta Google", use_container_width=True):
+        st.markdown("### 🔑 Entrar na Conta")
+        email_login = st.text_input("E-mail:", key="login_email")
+        pass_login = st.text_input("Senha:", type="password", key="login_pass")
+        
+        if st.button("Acessar Sistema", use_container_width=True):
             try:
-                res = supabase.auth.sign_in_with_oauth({
-                    "provider": "google",
-                    "options": {
-                        "redirect_to": "https://lucasmfujimoto-lab-bambu-filament-web.streamlit.app"
-                    }
-                })
-                if res.url:
-                    st.markdown(f'<meta http-equiv="refresh" content="0;url={res.url}">', unsafe_allow_html=True)
+                res = supabase.auth.sign_in_with_password(
+                    {"email": email_login, "password": pass_login}
+                )
+                st.session_state["user"] = res.user
+                st.success("Acesso autorizado!")
+                st.rerun()
             except Exception as e:
-                st.error(f"Erro ao iniciar login com Google: {e}")
+                st.error("Credenciais inválidas ou e-mail não autorizado.")
 
-        st.markdown("<p style='text-align: center; margin: 15px 0;'><b>OU</b></p>", unsafe_allow_html=True)
-
-        tab_login, tab_signup = st.tabs(["🔑 Entrar com E-mail", "📝 Criar Conta"])
-
-        with tab_login:
-            email_login = st.text_input("E-mail:", key="login_email")
-            pass_login = st.text_input("Palavra-passe:", type="password", key="login_pass")
-            if st.button("Entrar no App", use_container_width=True):
-                try:
-                    res = supabase.auth.sign_in_with_password(
-                        {"email": email_login, "password": pass_login}
-                    )
-                    st.session_state["user"] = res.user
-                    st.success("Login realizado com sucesso!")
-                    st.rerun()
-                except Exception as e:
-                    st.error("Erro no login. Verifique o seu e-mail e palavra-passe.")
-
-        with tab_signup:
-            email_signup = st.text_input("Novo E-mail:", key="signup_email")
-            pass_signup = st.text_input("Nova Palavra-passe:", type="password", key="signup_pass")
-            if st.button("Criar Minha Conta", use_container_width=True):
-                try:
-                    res = supabase.auth.sign_up(
-                        {"email": email_signup, "password": pass_signup}
-                    )
-                    st.success("Conta criada! Pode agora fazer login.")
-                except Exception as e:
-                    st.error(f"Erro ao cadastrar: {e}")
-
-    # Interrompe a execução do restante app se não estiver logado
     st.stop()
 
 # ==========================================
-# APLICAÇÃO PRINCIPAL (SÓ EXECUTA SE LOGADO)
+# DADOS DO USUÁRIO LOGADO
 # ==========================================
 user_id = st.session_state["user"].id
-user_email = getattr(st.session_state["user"], "email", "Utilizador Google")
+user_email = getattr(st.session_state["user"], "email", "")
+is_admin = (user_email == ADMIN_EMAIL)
 
 def fetch_inventory():
     try:
@@ -198,14 +173,14 @@ def fetch_inventory():
 
 inventory = fetch_inventory()
 
-# BANNER SUPERIOR COM BOTÃO DE SAÍDA
+# BANNER SUPERIOR COM OPÇÕES
 header_c1, header_c2 = st.columns([3, 1])
 with header_c1:
     st.markdown(
         f"""
         <div style='background: #FFE0B2; padding: 15px; border-radius: 12px; border: 2px solid #FFCC80;'>
             <h3 style='margin: 0; color: #E65100;'>⚡ BAMBU FILAMENT STUDIO PRO</h3>
-            <p style='margin: 0; color: #5D4037;'>Sessão de: <b>{user_email}</b></p>
+            <p style='margin: 0; color: #5D4037;'>Usuário: <b>{user_email}</b> {'(Administrador)' if is_admin else ''}</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -233,9 +208,20 @@ m4.metric("Status Bambu Cloud", status_conn)
 
 st.write("")
 
-tab_stock, tab_cloud = st.tabs(["📦 Meu Estoque", "☁️ Bambu Cloud"])
+# ABAS DO SISTEMA
+tabs_list = ["📦 Meu Estoque", "☁️ Bambu Cloud", "👤 Minha Conta"]
+if is_admin:
+    tabs_list.append("⚙️ Painel Admin")
 
+tabs = st.tabs(tabs_list)
+tab_stock = tabs[0]
+tab_cloud = tabs[1]
+tab_account = tabs[2]
+tab_admin = tabs[3] if is_admin else None
+
+# ==========================================
 # ABA 1: GERENCIADOR DE ESTOQUE
+# ==========================================
 with tab_stock:
     col_left, col_right = st.columns([1.3, 1])
 
@@ -264,7 +250,7 @@ with tab_stock:
                         "cost_per_g": price / 1000.0,
                     }
                     supabase.table("filamentos").insert(new_data).execute()
-                    st.success("Carretel salvo com sucesso!")
+                    st.success("Carretel salvo!")
                     st.rerun()
 
         st.markdown("### 📦 Tabela do Meu Estoque")
@@ -315,11 +301,10 @@ with tab_stock:
                 st.success("Carretel removido!")
                 st.rerun()
         else:
-            st.info("Ainda não cadastrou nenhum carretel.")
+            st.info("Nenhum carretel cadastrado ainda.")
 
     with col_right:
         st.markdown("### 🖼️ Sincronização Bambu Cloud")
-
         b_token = st.session_state.get("bambu_token")
 
         if st.button("🔄 Carregar Impressões da Nuvem", use_container_width=True):
@@ -389,14 +374,104 @@ with tab_stock:
                     st.success(f"Baixa efetuada! Custo: R$ {cost:.2f}")
                     st.rerun()
 
+# ==========================================
 # ABA 2: CONEXÃO CLOUD
+# ==========================================
 with tab_cloud:
     st.markdown("### 🔑 Autenticação Bambu Cloud")
-
-    st.markdown("#### Cole o Token JWT do seu aplicativo/navegador:")
-    manual_token = st.text_input("Token JWT:")
+    manual_token = st.text_input("Cole o Token JWT do seu navegador:")
     if st.button("Conectar Conta Bambu"):
         if manual_token.strip():
             st.session_state["bambu_token"] = manual_token.strip()
-            st.success("Conectado com sucesso à conta Bambu Lab!")
+            st.success("Conectado com sucesso à Bambu Lab!")
             st.rerun()
+
+# ==========================================
+# ABA 3: TROCAR SENHA (QUALQUER USUÁRIO)
+# ==========================================
+with tab_account:
+    st.markdown("### 🔒 Alterar Minha Senha")
+    st.caption("Você pode redefinir sua senha de acesso a qualquer momento.")
+
+    with st.form("form_change_password"):
+        new_pass = st.text_input("Nova Senha:", type="password")
+        confirm_pass = st.text_input("Confirme a Nova Senha:", type="password")
+        submit_pass = st.form_submit_button("Atualizar Minha Senha")
+
+        if submit_pass:
+            if not new_pass or len(new_pass) < 6:
+                st.error("A senha deve ter pelo menos 6 caracteres.")
+            elif new_pass != confirm_pass:
+                st.error("As senhas digitadas não coincidem.")
+            else:
+                try:
+                    supabase.auth.update_user({"password": new_pass})
+                    st.success("Senha alterada com sucesso!")
+                except Exception as e:
+                    st.error(f"Erro ao atualizar senha: {e}")
+
+# ==========================================
+# ABA 4: PAINEL ADMIN (APENAS PARA O ADMIN)
+# ==========================================
+if is_admin and tab_admin:
+    with tab_admin:
+        st.markdown("### ⚙️ Gestão de Usuários e Permissões")
+
+        col_new_user, col_list_users = st.columns([1, 1.2])
+
+        # Form para cadastrar novo usuário
+        with col_new_user:
+            st.markdown("#### ➕ Cadastrar Novo Usuário")
+            with st.form("form_admin_add_user"):
+                new_user_email = st.text_input("E-mail do Usuário:")
+                new_user_pass = st.text_input("Senha Inicial:", type="password")
+                submit_new_user = st.form_submit_button("📧 Cadastrar & Enviar E-mail")
+
+                if submit_new_user:
+                    if new_user_email and new_user_pass:
+                        try:
+                            # Convida e cadastra o usuário via Supabase
+                            res = supabase.auth.sign_up({
+                                "email": new_user_email,
+                                "password": new_user_pass
+                            })
+                            st.success(f"Usuário {new_user_email} cadastrado com sucesso! E-mail de confirmação enviado.")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erro ao cadastrar usuário: {e}")
+                    else:
+                        st.warning("Preencha o e-mail e a senha inicial.")
+
+        # Tabela de Usuários para visualização e exclusão
+        with col_list_users:
+            st.markdown("#### 📋 Usuários Cadastrados no Banco")
+            try:
+                profiles_res = supabase.table("profiles").select("*").execute()
+                profiles = profiles_res.data or []
+
+                if profiles:
+                    user_table = [
+                        {
+                            "E-mail": p["email"],
+                            "Data Cadastro": p["created_at"][:10],
+                            "Perfil": "Admin" if p.get("is_admin") else "Usuário"
+                        }
+                        for p in profiles
+                    ]
+                    st.dataframe(user_table, use_container_width=True)
+
+                    st.markdown("#### 🗑️ Excluir Acesso de Usuário")
+                    user_to_delete = st.selectbox(
+                        "Selecione o e-mail para revogar acesso:",
+                        [p["email"] for p in profiles if p["email"] != ADMIN_EMAIL]
+                    )
+
+                    if st.button("🔴 Confirmar Exclusão de Usuário"):
+                        p_obj = next(p for p in profiles if p["email"] == user_to_delete)
+                        supabase.table("profiles").delete().eq("id", p_obj["id"]).execute()
+                        st.success(f"Acesso de {user_to_delete} removido!")
+                        st.rerun()
+                else:
+                    st.info("Nenhum usuário secundário encontrado.")
+            except Exception as e:
+                st.error(f"Erro ao carregar lista de usuários: {e}")
