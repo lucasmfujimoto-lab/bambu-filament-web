@@ -9,7 +9,7 @@ from supabase import create_client, Client
 # --- CONFIGURAÇÃO DO SUPABASE ---
 SUPABASE_URL = "https://aaxicngdahpbunwlgjsj.supabase.co"
 # Insira sua chave JWT 'anon' (a chave longa que começa com eyJhbGci...)
-SUPABASE_KEY = "5e76869d-694e-45f5-bffa-f713616b58cf"
+SUPABASE_KEY = "SUA_CHAVE_ANON_LEGACY_AQUI"
 
 # Defina o seu e-mail de Administrador Principal
 ADMIN_EMAIL = "lucasmfujimoto@gmail.com"
@@ -122,9 +122,11 @@ if "recent_tasks" not in st.session_state:
     st.session_state["recent_tasks"] = []
 if "bambu_token" not in st.session_state:
     st.session_state["bambu_token"] = None
+if "show_forgot_pass" not in st.session_state:
+    st.session_state["show_forgot_pass"] = False
 
 # ==========================================
-# TELA DE LOGIN EXCLUSIVA (SEM AUTO-REGISTRO)
+# TELA DE LOGIN EXCLUSIVA + ESQUECI A SENHA
 # ==========================================
 if st.session_state["user"] is None:
     st.markdown(
@@ -140,20 +142,51 @@ if st.session_state["user"] is None:
     _, col_center, _ = st.columns([1, 1.2, 1])
 
     with col_center:
-        st.markdown("### 🔑 Entrar no Sistema")
-        email_login = st.text_input("E-mail:", key="login_email")
-        pass_login = st.text_input("Senha:", type="password", key="login_pass")
-        
-        if st.button("Acessar", use_container_width=True):
-            try:
-                res = supabase.auth.sign_in_with_password(
-                    {"email": email_login, "password": pass_login}
-                )
-                st.session_state["user"] = res.user
-                st.success("Acesso autorizado!")
+        if not st.session_state["show_forgot_pass"]:
+            st.markdown("### 🔑 Entrar no Sistema")
+            email_login = st.text_input("E-mail:", key="login_email")
+            pass_login = st.text_input("Senha:", type="password", key="login_pass")
+            
+            if st.button("Acessar", use_container_width=True):
+                try:
+                    res = supabase.auth.sign_in_with_password(
+                        {"email": email_login, "password": pass_login}
+                    )
+                    st.session_state["user"] = res.user
+                    st.success("Acesso autorizado!")
+                    st.rerun()
+                except Exception as e:
+                    st.error("E-mail ou senha incorretos.")
+
+            st.write("")
+            if st.button("❓ Esqueci minha senha", use_container_width=True):
+                st.session_state["show_forgot_pass"] = True
                 st.rerun()
-            except Exception as e:
-                st.error("E-mail ou senha incorretos.")
+
+        else:
+            st.markdown("### 🔑 Recuperar Senha")
+            st.caption("Digite o seu e-mail para receber as instruções de redefinição de senha.")
+            reset_email = st.text_input("Seu E-mail Cadastrado:", key="reset_email")
+
+            col_btn1, col_btn2 = st.columns(2)
+            with col_btn1:
+                if st.button("📧 Enviar Recuperação", use_container_width=True):
+                    if reset_email.strip():
+                        try:
+                            supabase.auth.reset_password_for_email(
+                                reset_email.strip(),
+                                redirect_to="https://meu-estoque-3d.streamlit.app"
+                            )
+                            st.success(f"E-mail de recuperação enviado para {reset_email.strip()}! Verifique sua caixa de entrada e spam.")
+                        except Exception as e:
+                            st.error(f"Erro ao solicitar recuperação: {e}")
+                    else:
+                        st.warning("Por favor, informe seu e-mail.")
+
+            with col_btn2:
+                if st.button("⬅️ Voltar ao Login", use_container_width=True):
+                    st.session_state["show_forgot_pass"] = False
+                    st.rerun()
 
     st.stop()
 
@@ -419,7 +452,6 @@ if is_admin and tab_admin:
 
         col_new_user, col_list_users = st.columns([1, 1.2])
 
-        # Formulário para cadastrar novo usuário
         with col_new_user:
             st.markdown("#### ➕ Criar Novo Acesso")
             with st.form("form_admin_add_user"):
@@ -442,7 +474,6 @@ if is_admin and tab_admin:
                     else:
                         st.warning("Preencha o e-mail e a senha provisória.")
 
-        # Tabela de Usuários para visualização e remoção
         with col_list_users:
             st.markdown("#### 📋 Usuários Cadastrados")
             try:
