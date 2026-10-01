@@ -8,7 +8,7 @@ from supabase import create_client, Client
 
 # --- CONFIGURAÇÃO DO SUPABASE ---
 SUPABASE_URL = "https://aaxicngdahpbunwlgjsj.supabase.co/rest/v1/"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFheGljbmdkYWhwYnVud2xnanNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3OTA0NjgsImV4cCI6MjEwNjM2NjQ2OH0.vmwoaiamSSA9fdP1AwCEWf4U1pgBl1wGbjMtPeRSqz8"  # Cole aqui a sua chave anon / public
+SUPABASE_KEY = "dQ27YvYvKA1WQkEFVg67cBrGRC/sA2JSwqAUsx5vO+6tLMfln23BxHRjm1otw3qe3ayucdINJIwS/k+meFBOew=="  # Cole aqui a sua chave anon / public
 
 @st.cache_resource
 def init_supabase() -> Client:
