@@ -1,15 +1,21 @@
-SUPABASE_URL = "https://aaxicngdahpbunwlgjsj.supabase.co"
-SUPABASE_KEY = "sb_publishable_3_v7p2pMeFYw0wfmiEN-PA_U-QPlfMq"
-
 import io
 import json
-import os
 import uuid
 from PIL import Image
 import requests
 import streamlit as st
+from supabase import create_client, Client
 
-DATA_FILE = "estoque_filamentos.json"
+# --- CONFIGURAÇÃO DO SUPABASE ---
+SUPABASE_URL = "https://aaxicngdahpbunwlgjsj.supabase.co"
+SUPABASE_KEY = "SUA_CHAVE_ANON_AQUI"  # Cole aqui a sua chave anon / public
+
+@st.cache_resource
+def init_supabase() -> Client:
+    return create_client(SUPABASE_URL, SUPABASE_KEY)
+
+supabase = init_supabase()
+
 BAMBU_BASE_URL = "https://api.bambulab.com"
 
 PRESET_COLORS = {
@@ -29,59 +35,48 @@ PRESET_COLORS = {
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
-    page_title="Bambu Filament Studio Pro",
+    page_title="Bambu Filament Studio",
     page_icon="🖨️",
     layout="wide",
 )
 
-# --- ESTILIZAÇÃO CSS CUSTOMIZADA (FUNDO LARANJA CLARO + CONTRASTE ESCURO) ---
+# --- ESTILIZAÇÃO CSS (LARANJA SUAVE) ---
 st.markdown(
     """
     <style>
-    /* Fundo Laranja Claro */
     .stApp {
         background-color: #FFF3E0;
         color: #2E1C0C;
         font-family: 'Segoe UI', -apple-system, sans-serif;
     }
-    
-    /* Esconder cabeçalho padrão do Streamlit */
     header {visibility: hidden;}
     footer {visibility: hidden;}
     
-    /* Titulos e Rótulos principais */
     h1, h2, h3, h4, h5, h6, label, p, span {
         color: #2E1C0C !important;
     }
 
-    /* Cards de Métricas Customizados */
     [data-testid="stMetric"] {
         background: #FFFFFF;
         border: 2px solid #FFE0B2;
         border-radius: 12px;
         padding: 15px 20px;
-        box-shadow: 0 4px 12px rgba(230, 81, 0, 0.08);
     }
-    
     [data-testid="stMetricLabel"] {
         color: #795548 !important;
         font-size: 0.85rem !important;
         font-weight: 700 !important;
-        text-transform: uppercase;
     }
-    
     [data-testid="stMetricValue"] {
         color: #E65100 !important;
         font-size: 1.8rem !important;
         font-weight: 800 !important;
     }
 
-    /* Abas (Tabs) Estilizadas */
     .stTabs [data-baseweb="tab-list"] {
         gap: 10px;
         background-color: #FFF3E0;
     }
-
     .stTabs [data-baseweb="tab"] {
         height: 48px;
         background-color: #FFE0B2;
@@ -91,30 +86,20 @@ st.markdown(
         border: 1px solid #FFCC80;
         padding: 0px 24px;
     }
-
     .stTabs [aria-selected="true"] {
         background-color: #EF6C00 !important;
         color: #FFFFFF !important;
         border: 1px solid #E65100 !important;
     }
 
-    /* Estilo dos Botões */
     .stButton > button {
         border-radius: 8px;
         font-weight: 700;
         background-color: #EF6C00;
         color: #FFFFFF !important;
         border: none;
-        transition: all 0.2s ease-in-out;
     }
     
-    .stButton > button:hover {
-        background-color: #E65100;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(230, 81, 0, 0.25);
-    }
-
-    /* Formulários e Entradas */
     div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
         background-color: #FFFFFF !important;
         border: 1px solid #FFCC80 !important;
@@ -126,77 +111,131 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-
-# --- PERSISTÊNCIA DE DADOS ---
-def load_data():
-    if os.path.exists(DATA_FILE):
-        try:
-            with open(DATA_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            pass
-    return {
-        "inventory": [],
-        "id_counter": 1,
-        "bambu_token": None,
-        "saved_email": "",
-    }
-
-
-def save_data(data):
-    try:
-        with open(DATA_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=4)
-    except Exception as e:
-        st.error(f"Erro ao salvar dados: {e}")
-
-
-if "data" not in st.session_state:
-    st.session_state["data"] = load_data()
+# Inicialização da Sessão de Utilizador
+if "user" not in st.session_state:
+    st.session_state["user"] = None
 if "recent_tasks" not in st.session_state:
     st.session_state["recent_tasks"] = []
+if "bambu_token" not in st.session_state:
+    st.session_state["bambu_token"] = None
 
-data = st.session_state["data"]
+# ==========================================
+# TELA DE LOGIN E CADASTRO (BLOQUEIO)
+# ==========================================
+if st.session_state["user"] is None:
+    st.markdown(
+        """
+        <div style='text-align: center; padding: 30px 0 10px 0;'>
+            <h1 style='color: #E65100;'>🖨️ Bambu Filament Studio</h1>
+            <p style='color: #5D4037; font-size: 1.1rem;'>Aceda à sua conta para gerir o seu estoque de filamentos 3D</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-# --- BANNER SUPERIOR ---
-st.markdown(
-    """
-    <div style='background: linear-gradient(90deg, #FFE0B2 0%, #FFF3E0 100%); padding: 20px; border-radius: 12px; border: 2px solid #FFCC80; margin-bottom: 20px;'>
-        <h2 style='margin: 0; color: #E65100;'>⚡ BAMBU FILAMENT STUDIO PRO</h2>
-        <p style='margin: 5px 0 0 0; color: #5D4037; font-size: 0.95rem; font-weight: 600;'>Gestão Inteligente de Estoque 3D & Sincronização Cloud</p>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+    _, col_center, _ = st.columns([1, 1.2, 1])
 
-# --- DASHBOARD DE MÉTRICAS ---
-inventory = data.get("inventory", [])
+    with col_center:
+        # BOTÃO DE LOGIN COM O GOOGLE
+        if st.button("🌐 Entrar com a Conta Google", use_container_width=True):
+            try:
+                res = supabase.auth.sign_in_with_oauth({
+                    "provider": "google",
+                    "options": {
+                        "redirect_to": "https://lucasmfujimoto-lab-bambu-filament-web.streamlit.app"
+                    }
+                })
+                if res.url:
+                    st.markdown(f'<meta http-equiv="refresh" content="0;url={res.url}">', unsafe_allow_html=True)
+            except Exception as e:
+                st.error(f"Erro ao iniciar login com Google: {e}")
+
+        st.markdown("<p style='text-align: center; margin: 15px 0;'><b>OU</b></p>", unsafe_allow_html=True)
+
+        tab_login, tab_signup = st.tabs(["🔑 Entrar com E-mail", "📝 Criar Conta"])
+
+        with tab_login:
+            email_login = st.text_input("E-mail:", key="login_email")
+            pass_login = st.text_input("Palavra-passe:", type="password", key="login_pass")
+            if st.button("Entrar no App", use_container_width=True):
+                try:
+                    res = supabase.auth.sign_in_with_password(
+                        {"email": email_login, "password": pass_login}
+                    )
+                    st.session_state["user"] = res.user
+                    st.success("Login realizado com sucesso!")
+                    st.rerun()
+                except Exception as e:
+                    st.error("Erro no login. Verifique o seu e-mail e palavra-passe.")
+
+        with tab_signup:
+            email_signup = st.text_input("Novo E-mail:", key="signup_email")
+            pass_signup = st.text_input("Nova Palavra-passe:", type="password", key="signup_pass")
+            if st.button("Criar Minha Conta", use_container_width=True):
+                try:
+                    res = supabase.auth.sign_up(
+                        {"email": email_signup, "password": pass_signup}
+                    )
+                    st.success("Conta criada! Pode agora fazer login.")
+                except Exception as e:
+                    st.error(f"Erro ao cadastrar: {e}")
+
+    # Interrompe a execução do restante app se não estiver logado
+    st.stop()
+
+# ==========================================
+# APLICAÇÃO PRINCIPAL (SÓ EXECUTA SE LOGADO)
+# ==========================================
+user_id = st.session_state["user"].id
+user_email = getattr(st.session_state["user"], "email", "Utilizador Google")
+
+def fetch_inventory():
+    try:
+        res = supabase.table("filamentos").select("*").eq("user_id", user_id).execute()
+        return res.data or []
+    except Exception:
+        return []
+
+inventory = fetch_inventory()
+
+# BANNER SUPERIOR COM BOTÃO DE SAÍDA
+header_c1, header_c2 = st.columns([3, 1])
+with header_c1:
+    st.markdown(
+        f"""
+        <div style='background: #FFE0B2; padding: 15px; border-radius: 12px; border: 2px solid #FFCC80;'>
+            <h3 style='margin: 0; color: #E65100;'>⚡ BAMBU FILAMENT STUDIO PRO</h3>
+            <p style='margin: 0; color: #5D4037;'>Sessão de: <b>{user_email}</b></p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+with header_c2:
+    if st.button("🚪 Sair da Conta", use_container_width=True):
+        supabase.auth.sign_out()
+        st.session_state["user"] = None
+        st.session_state["bambu_token"] = None
+        st.rerun()
+
+st.write("")
+
+# MÉTRICAS
 total_spools = len(inventory)
-total_weight_kg = sum(item["current_g"] for item in inventory) / 1000.0
-total_value_brl = sum(
-    item["current_g"] * item["cost_per_g"] for item in inventory
-)
+total_weight_kg = sum(float(item["current_g"]) for item in inventory) / 1000.0 if inventory else 0.0
+total_value_brl = sum(float(item["current_g"]) * float(item["cost_per_g"]) for item in inventory) if inventory else 0.0
 
 m1, m2, m3, m4 = st.columns(4)
-m1.metric("Carretéis no Estoque", f"{total_spools}")
-m2.metric("Peso Total", f"{total_weight_kg:.2f} kg")
-m3.metric("Valor em Plástico", f"R$ {total_value_brl:.2f}")
-
-status_conn = (
-    "🟢 Conectado" if data.get("bambu_token") else "🔴 Desconectado"
-)
+m1.metric("Meus Carretéis", f"{total_spools}")
+m2.metric("Meu Peso Total", f"{total_weight_kg:.2f} kg")
+m3.metric("Meu Valor em Plástico", f"R$ {total_value_brl:.2f}")
+status_conn = "🟢 Conectado" if st.session_state.get("bambu_token") else "🔴 Desconectado"
 m4.metric("Status Bambu Cloud", status_conn)
 
 st.write("")
 
-# --- ABAS DE NAVEGAÇÃO ---
-tab_stock, tab_cloud = st.tabs(
-    ["📦 Gerenciador de Estoque", "☁️ Conexão Bambu Cloud"]
-)
+tab_stock, tab_cloud = st.tabs(["📦 Meu Estoque", "☁️ Bambu Cloud"])
 
-# ==========================================
 # ABA 1: GERENCIADOR DE ESTOQUE
-# ==========================================
 with tab_stock:
     col_left, col_right = st.columns([1.3, 1])
 
@@ -205,39 +244,30 @@ with tab_stock:
         with st.form("form_add_spool"):
             f_col1, f_col2 = st.columns(2)
             mat_name = f_col1.text_input("Material / Marca", "PLA Basic")
-            color_name = f_col2.selectbox(
-                "Cor do Carretel", list(PRESET_COLORS.keys()), index=0
-            )
+            color_name = f_col2.selectbox("Cor do Carretel", list(PRESET_COLORS.keys()), index=0)
 
             f_col3, f_col4 = st.columns(2)
-            price = f_col3.number_input(
-                "Preço Pago (R$)", value=120.0, step=5.0
-            )
-            curr_w = f_col4.number_input(
-                "Sobra Atual (g)", value=1000.0, step=50.0
-            )
+            price = f_col3.number_input("Preço Pago (R$)", value=120.0, step=5.0)
+            curr_w = f_col4.number_input("Sobra Atual (g)", value=1000.0, step=50.0)
 
-            btn_save = st.form_submit_button("➕ Salvar no Estoque")
+            btn_save = st.form_submit_button("➕ Salvar no Meu Estoque")
 
             if btn_save:
                 if mat_name and price > 0 and curr_w >= 0:
-                    new_spool = {
-                        "id": data.get("id_counter", 1),
+                    new_data = {
+                        "user_id": user_id,
                         "name": mat_name,
                         "color_name": color_name,
                         "color_hex": PRESET_COLORS.get(color_name, "#111111"),
                         "price": price,
-                        "initial_g": 1000.0,
                         "current_g": curr_w,
                         "cost_per_g": price / 1000.0,
                     }
-                    data["inventory"].append(new_spool)
-                    data["id_counter"] += 1
-                    save_data(data)
-                    st.success(f"Carretel '{mat_name} ({color_name})' salvo!")
+                    supabase.table("filamentos").insert(new_data).execute()
+                    st.success("Carretel salvo com sucesso!")
                     st.rerun()
 
-        st.markdown("### 📦 Tabela de Estoque")
+        st.markdown("### 📦 Tabela do Meu Estoque")
 
         if inventory:
             filter_color = st.selectbox(
@@ -247,21 +277,14 @@ with tab_stock:
 
             display_list = []
             for item in inventory:
-                if (
-                    filter_color != "Todas as Cores"
-                    and item.get("color_name") != filter_color
-                ):
+                if filter_color != "Todas as Cores" and item.get("color_name") != filter_color:
                     continue
 
-                curr = item["current_g"]
+                curr = float(item["current_g"])
                 status = (
                     "🔴 Esgotado"
                     if curr <= 0
-                    else (
-                        "⚠ Crítico"
-                        if curr < 150
-                        else ("🟡 Médio" if curr < 500 else "🟢 Cheio")
-                    )
+                    else ("⚠ Crítico" if curr < 150 else ("🟡 Médio" if curr < 500 else "🟢 Cheio"))
                 )
 
                 display_list.append(
@@ -270,7 +293,7 @@ with tab_stock:
                         "Material": item["name"],
                         "Cor": item.get("color_name", "N/A"),
                         "Sobra (g)": f"{curr:.1f}g",
-                        "Custo/g": f"R$ {item['cost_per_g']:.3f}",
+                        "Custo/g": f"R$ {float(item['cost_per_g']):.3f}",
                         "Nível": status,
                     }
                 )
@@ -278,34 +301,26 @@ with tab_stock:
             if display_list:
                 st.dataframe(display_list, use_container_width=True)
             else:
-                st.info("Nenhum filamento encontrado para o filtro selecionado.")
+                st.info("Nenhum filamento encontrado para esta cor.")
 
-            st.caption("Ações de Gerenciamento:")
             spool_options = {
-                f"#{s['id']} - {s['name']} ({s.get('color_name', '')}) - {s['current_g']}g": s[
-                    "id"
-                ]
+                f"#{s['id']} - {s['name']} ({s.get('color_name', '')}) - {s['current_g']}g": s["id"]
                 for s in inventory
             }
-            selected_spool_label = st.selectbox(
-                "Selecione um carretel:", list(spool_options.keys())
-            )
+            selected_spool_label = st.selectbox("Selecione um carretel:", list(spool_options.keys()))
 
             if st.button("🗑️ Excluir Carretel Selecionado"):
                 s_id = spool_options[selected_spool_label]
-                data["inventory"] = [
-                    s for s in data["inventory"] if s["id"] != s_id
-                ]
-                save_data(data)
+                supabase.table("filamentos").delete().eq("id", s_id).execute()
                 st.success("Carretel removido!")
                 st.rerun()
         else:
-            st.info("Seu estoque está vazio. Cadastre um carretel acima.")
+            st.info("Ainda não cadastrou nenhum carretel.")
 
     with col_right:
         st.markdown("### 🖼️ Sincronização Bambu Cloud")
 
-        b_token = data.get("bambu_token")
+        b_token = st.session_state.get("bambu_token")
 
         if st.button("🔄 Carregar Impressões da Nuvem", use_container_width=True):
             if not b_token:
@@ -318,15 +333,11 @@ with tab_stock:
                         "User-Agent": "BambuStudio/01.09.00.00",
                     }
                     params = {"limit": 15, "offset": 0}
-                    resp = requests.get(
-                        history_url, headers=headers, params=params, timeout=12
-                    )
+                    resp = requests.get(history_url, headers=headers, params=params, timeout=12)
 
                     if resp.status_code == 200:
                         res_json = resp.json()
-                        st.session_state["recent_tasks"] = res_json.get(
-                            "hits", []
-                        ) or res_json.get("tasks", [])
+                        st.session_state["recent_tasks"] = res_json.get("hits", []) or res_json.get("tasks", [])
                         st.success("Histórico carregado!")
                     else:
                         st.error("Token expirado ou inválido.")
@@ -337,8 +348,7 @@ with tab_stock:
 
         if tasks:
             task_options = [
-                f"{t.get('title', 'Sem Nome')} ({t.get('weight', 0)}g)"
-                for t in tasks
+                f"{t.get('title', 'Sem Nome')} ({t.get('weight', 0)}g)" for t in tasks
             ]
             selected_task_idx = st.selectbox(
                 "Selecione o Trabalho Realizado:",
@@ -355,107 +365,38 @@ with tab_stock:
                 try:
                     img_resp = requests.get(cover_url, timeout=5)
                     if img_resp.status_code == 200:
-                        st.image(
-                            Image.open(io.BytesIO(img_resp.content)),
-                            width=260,
-                        )
+                        st.image(Image.open(io.BytesIO(img_resp.content)), width=260)
                 except Exception:
                     pass
 
-            st.markdown(
-                f"**📦 Consumo:** `{job_weight}g` &nbsp;&nbsp;|&nbsp;&nbsp; **⏱️ Duração:** `{job_time} min`"
-            )
+            st.markdown(f"**📦 Consumo:** `{job_weight}g` | **⏱️ Duração:** `{job_time} min`")
 
             if inventory:
                 target_spool_label = st.selectbox(
-                    "Descontar do Carretel:",
-                    list(spool_options.keys()),
-                    key="target_spool",
+                    "Descontar do Carretel:", list(spool_options.keys()), key="target_spool"
                 )
 
                 if st.button("⚡ Dar Baixa no Estoque", type="primary", use_container_width=True):
                     target_id = spool_options[target_spool_label]
-                    spool = next(
-                        s for s in data["inventory"] if s["id"] == target_id
-                    )
+                    spool = next(s for s in inventory if s["id"] == target_id)
 
-                    if spool["current_g"] < job_weight:
-                        spool["current_g"] = 0
-                    else:
-                        spool["current_g"] -= job_weight
+                    new_weight = float(spool["current_g"]) - job_weight
+                    if new_weight < 0:
+                        new_weight = 0
 
-                    cost = job_weight * spool["cost_per_g"]
-                    save_data(data)
+                    supabase.table("filamentos").update({"current_g": new_weight}).eq("id", target_id).execute()
+                    cost = job_weight * float(spool["cost_per_g"])
                     st.success(f"Baixa efetuada! Custo: R$ {cost:.2f}")
                     st.rerun()
 
-# ==========================================
 # ABA 2: CONEXÃO CLOUD
-# ==========================================
 with tab_cloud:
-    st.markdown("### 🔑 Autenticação na Bambu Cloud")
+    st.markdown("### 🔑 Autenticação Bambu Cloud")
 
-    st.markdown("#### Opção A: Login com Token Manual (Recomendado)")
-    manual_token = st.text_input("Cole o Token JWT do seu navegador:")
-    if st.button("Entrar por Token"):
+    st.markdown("#### Cole o Token JWT do seu aplicativo/navegador:")
+    manual_token = st.text_input("Token JWT:")
+    if st.button("Conectar Conta Bambu"):
         if manual_token.strip():
-            data["bambu_token"] = manual_token.strip()
-            data["saved_email"] = "Token Manual"
-            save_data(data)
-            st.success("Token ativado com sucesso!")
-            st.rerun()
-
-    st.divider()
-
-    st.markdown("#### Opção B: Login por E-mail e Senha")
-    email_in = st.text_input("E-mail Bambu:", value=data.get("saved_email", ""))
-    pass_in = st.text_input("Senha:", type="password")
-    code_in = st.text_input("Código 2FA (se recebido no e-mail):")
-
-    if st.button("Conectar por E-mail"):
-        if email_in and pass_in:
-            dev_id = str(uuid.uuid4())
-            login_url = f"{BAMBU_BASE_URL}/v1/user-service/user/login"
-            payload = {
-                "account": email_in,
-                "password": pass_in,
-                "device_id": dev_id,
-            }
-            if code_in.strip():
-                payload["code"] = code_in.strip()
-                payload["verify_code"] = code_in.strip()
-
-            headers = {
-                "Content-Type": "application/json",
-                "User-Agent": "BambuStudio/01.09.00.00",
-                "Accept": "application/json",
-                "X-Bambu-Client-Type": "studio",
-            }
-
-            try:
-                resp = requests.post(
-                    login_url, json=payload, headers=headers, timeout=12
-                )
-                res_data = resp.json()
-
-                if resp.status_code == 200:
-                    token = res_data.get("token") or res_data.get("accessToken")
-                    if token:
-                        data["bambu_token"] = token
-                        data["saved_email"] = email_in
-                        save_data(data)
-                        st.success("Conectado à Bambu Cloud!")
-                        st.rerun()
-                else:
-                    st.error(f"Erro ({resp.status_code}): {resp.text}")
-            except Exception as e:
-                st.error(f"Erro de conexão: {e}")
-
-    if data.get("bambu_token"):
-        st.divider()
-        if st.button("🚪 Encerrar Sessão"):
-            data["bambu_token"] = None
-            data["saved_email"] = ""
-            save_data(data)
-            st.success("Sessão encerrada.")
+            st.session_state["bambu_token"] = manual_token.strip()
+            st.success("Conectado com sucesso à conta Bambu Lab!")
             st.rerun()
