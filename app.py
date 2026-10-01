@@ -31,7 +31,7 @@ st.set_page_config(
     layout="wide",
 )
 
-# --- ESTILIZAÇÃO CSS CUSTOMIZADA (DESIGN ULTRAMODERNO) ---
+# --- ESTILIZAÇÃO CSS CUSTOMIZADA ---
 st.markdown(
     """
     <style>
@@ -42,11 +42,9 @@ st.markdown(
         font-family: 'Segoe UI', -apple-system, sans-serif;
     }
     
-    /* Esconder cabeçalho padrão do Streamlit */
     header {visibility: hidden;}
     footer {visibility: hidden;}
     
-    /* Cards de Métricas Customizados */
     [data-testid="stMetric"] {
         background: #151922;
         border: 1px solid #232D3F;
@@ -68,7 +66,6 @@ st.markdown(
         font-weight: 800 !important;
     }
 
-    /* Abas (Tabs) Estilizadas */
     .stTabs [data-baseweb="tab-list"] {
         gap: 10px;
         background-color: #0B0E14;
@@ -90,20 +87,13 @@ st.markdown(
         border: 1px solid #7C4DFF !important;
     }
 
-    /* Estilo dos Botões */
     .stButton > button {
         border-radius: 8px;
         font-weight: 700;
         border: none;
         transition: all 0.2s ease-in-out;
     }
-    
-    .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 230, 118, 0.3);
-    }
 
-    /* Formulários e Entradas */
     div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
         background-color: #151922 !important;
         border: 1px solid #232D3F !important;
@@ -112,7 +102,7 @@ st.markdown(
     }
     </style>
     """,
-    unsafe_allow_dict_style=True,
+    unsafe_allow_html=True,  # <--- ALTERADO AQUI
 )
 
 
@@ -155,7 +145,7 @@ st.markdown(
         <p style='margin: 5px 0 0 0; color: #A0AEC0; font-size: 0.9rem;'>Gestão Inteligente de Estoque 3D & Sincronização Cloud</p>
     </div>
     """,
-    unsafe_allow_dict_style=True,
+    unsafe_allow_html=True,  # <--- ALTERADO AQUI
 )
 
 # --- DASHBOARD DE MÉTRICAS ---
