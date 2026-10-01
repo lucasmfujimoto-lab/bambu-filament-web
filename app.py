@@ -1,3 +1,6 @@
+SUPABASE_URL = "https://aaxicngdahpbunwlgjsj.supabase.co"
+SUPABASE_KEY = "sb_publishable_3_v7p2pMeFYw0wfmiEN-PA_U-QPlfMq"
+
 import io
 import json
 import os
