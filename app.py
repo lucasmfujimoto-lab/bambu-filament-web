@@ -8,10 +8,10 @@ from supabase import create_client, Client
 
 # --- CONFIGURAÇÃO DO SUPABASE ---
 SUPABASE_URL = "https://aaxicngdahpbunwlgjsj.supabase.co"
-# Insira sua chave JWT 'anon' (que começa com eyJhbGci...)
+# Insira sua chave JWT 'anon' (a chave longa que começa com eyJhbGci...)
 SUPABASE_KEY = "5e76869d-694e-45f5-bffa-f713616b58cf"
 
-# Defina seu e-mail de Administrador Principal
+# Defina o seu e-mail de Administrador Principal
 ADMIN_EMAIL = "lucasmfujimoto@gmail.com"
 
 @st.cache_resource
@@ -124,14 +124,14 @@ if "bambu_token" not in st.session_state:
     st.session_state["bambu_token"] = None
 
 # ==========================================
-# TELA DE LOGIN ÚNICA (SEM AUTO-CADASTRO)
+# TELA DE LOGIN EXCLUSIVA (SEM AUTO-REGISTRO)
 # ==========================================
 if st.session_state["user"] is None:
     st.markdown(
         """
         <div style='text-align: center; padding: 40px 0 20px 0;'>
             <h1 style='color: #E65100;'>🖨️ Bambu Filament Studio</h1>
-            <p style='color: #5D4037; font-size: 1.1rem;'>Acesso exclusivo para usuários autorizados</p>
+            <p style='color: #5D4037; font-size: 1.1rem;'>Acesso restrito a usuários autorizados</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -140,11 +140,11 @@ if st.session_state["user"] is None:
     _, col_center, _ = st.columns([1, 1.2, 1])
 
     with col_center:
-        st.markdown("### 🔑 Entrar na Conta")
+        st.markdown("### 🔑 Entrar no Sistema")
         email_login = st.text_input("E-mail:", key="login_email")
         pass_login = st.text_input("Senha:", type="password", key="login_pass")
         
-        if st.button("Acessar Sistema", use_container_width=True):
+        if st.button("Acessar", use_container_width=True):
             try:
                 res = supabase.auth.sign_in_with_password(
                     {"email": email_login, "password": pass_login}
@@ -153,7 +153,7 @@ if st.session_state["user"] is None:
                 st.success("Acesso autorizado!")
                 st.rerun()
             except Exception as e:
-                st.error("Credenciais inválidas ou e-mail não autorizado.")
+                st.error("E-mail ou senha incorretos.")
 
     st.stop()
 
@@ -173,7 +173,7 @@ def fetch_inventory():
 
 inventory = fetch_inventory()
 
-# BANNER SUPERIOR COM OPÇÕES
+# BANNER SUPERIOR
 header_c1, header_c2 = st.columns([3, 1])
 with header_c1:
     st.markdown(
@@ -391,7 +391,7 @@ with tab_cloud:
 # ==========================================
 with tab_account:
     st.markdown("### 🔒 Alterar Minha Senha")
-    st.caption("Você pode redefinir sua senha de acesso a qualquer momento.")
+    st.caption("Você pode alterar sua senha a qualquer momento.")
 
     with st.form("form_change_password"):
         new_pass = st.text_input("Nova Senha:", type="password")
@@ -402,7 +402,7 @@ with tab_account:
             if not new_pass or len(new_pass) < 6:
                 st.error("A senha deve ter pelo menos 6 caracteres.")
             elif new_pass != confirm_pass:
-                st.error("As senhas digitadas não coincidem.")
+                st.error("As senhas não coincidem.")
             else:
                 try:
                     supabase.auth.update_user({"password": new_pass})
@@ -415,36 +415,36 @@ with tab_account:
 # ==========================================
 if is_admin and tab_admin:
     with tab_admin:
-        st.markdown("### ⚙️ Gestão de Usuários e Permissões")
+        st.markdown("### ⚙️ Gestão de Usuários (Acesso Admin)")
 
         col_new_user, col_list_users = st.columns([1, 1.2])
 
-        # Form para cadastrar novo usuário
+        # Formulário para cadastrar novo usuário
         with col_new_user:
-            st.markdown("#### ➕ Cadastrar Novo Usuário")
+            st.markdown("#### ➕ Criar Novo Acesso")
             with st.form("form_admin_add_user"):
-                new_user_email = st.text_input("E-mail do Usuário:")
-                new_user_pass = st.text_input("Senha Inicial:", type="password")
-                submit_new_user = st.form_submit_button("📧 Cadastrar & Enviar E-mail")
+                new_user_email = st.text_input("E-mail do Novo Usuário:")
+                new_user_pass = st.text_input("Definir Senha Provisória:", type="password")
+                submit_new_user = st.form_submit_button("👤 Cadastrar Usuário")
 
                 if submit_new_user:
                     if new_user_email and new_user_pass:
                         try:
-                            # Convida e cadastra o usuário via Supabase
                             res = supabase.auth.sign_up({
                                 "email": new_user_email,
                                 "password": new_user_pass
                             })
-                            st.success(f"Usuário {new_user_email} cadastrado com sucesso! E-mail de confirmação enviado.")
+                            st.success(f"Usuário {new_user_email} cadastrado com sucesso!")
+                            st.info("Passe o e-mail e a senha provisória para o usuário. Ele poderá alterar a senha na aba 'Minha Conta'.")
                             st.rerun()
                         except Exception as e:
                             st.error(f"Erro ao cadastrar usuário: {e}")
                     else:
-                        st.warning("Preencha o e-mail e a senha inicial.")
+                        st.warning("Preencha o e-mail e a senha provisória.")
 
-        # Tabela de Usuários para visualização e exclusão
+        # Tabela de Usuários para visualização e remoção
         with col_list_users:
-            st.markdown("#### 📋 Usuários Cadastrados no Banco")
+            st.markdown("#### 📋 Usuários Cadastrados")
             try:
                 profiles_res = supabase.table("profiles").select("*").execute()
                 profiles = profiles_res.data or []
@@ -453,25 +453,26 @@ if is_admin and tab_admin:
                     user_table = [
                         {
                             "E-mail": p["email"],
-                            "Data Cadastro": p["created_at"][:10],
-                            "Perfil": "Admin" if p.get("is_admin") else "Usuário"
+                            "Data": p["created_at"][:10],
+                            "Perfil": "Admin" if p["email"] == ADMIN_EMAIL else "Usuário"
                         }
                         for p in profiles
                     ]
                     st.dataframe(user_table, use_container_width=True)
 
-                    st.markdown("#### 🗑️ Excluir Acesso de Usuário")
-                    user_to_delete = st.selectbox(
-                        "Selecione o e-mail para revogar acesso:",
-                        [p["email"] for p in profiles if p["email"] != ADMIN_EMAIL]
-                    )
-
-                    if st.button("🔴 Confirmar Exclusão de Usuário"):
-                        p_obj = next(p for p in profiles if p["email"] == user_to_delete)
-                        supabase.table("profiles").delete().eq("id", p_obj["id"]).execute()
-                        st.success(f"Acesso de {user_to_delete} removido!")
-                        st.rerun()
+                    st.markdown("#### 🗑️ Excluir Usuário")
+                    other_users = [p["email"] for p in profiles if p["email"] != ADMIN_EMAIL]
+                    
+                    if other_users:
+                        user_to_delete = st.selectbox("Selecione o e-mail para revogar:", other_users)
+                        if st.button("🔴 Remover Acesso"):
+                            p_obj = next(p for p in profiles if p["email"] == user_to_delete)
+                            supabase.table("profiles").delete().eq("id", p_obj["id"]).execute()
+                            st.success(f"Acesso de {user_to_delete} removido!")
+                            st.rerun()
+                    else:
+                        st.caption("Nenhum usuário secundário para excluir.")
                 else:
-                    st.info("Nenhum usuário secundário encontrado.")
+                    st.info("Nenhum usuário cadastrado na base de dados.")
             except Exception as e:
-                st.error(f"Erro ao carregar lista de usuários: {e}")
+                st.error(f"Erro ao buscar lista de usuários: {e}")
