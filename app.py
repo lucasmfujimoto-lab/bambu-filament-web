@@ -175,7 +175,7 @@ if st.session_state["user"] is None:
                         try:
                             supabase.auth.reset_password_for_email(
                                 reset_email.strip(),
-                                redirect_to="https://meu-estoque-3d.streamlit.app"
+                                options={"redirect_to": "https://meu-estoque-3d.streamlit.app"}
                             )
                             st.success(f"E-mail de recuperação enviado para {reset_email.strip()}! Verifique sua caixa de entrada e spam.")
                         except Exception as e:
