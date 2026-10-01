@@ -9,7 +9,7 @@ from supabase import create_client, Client
 # --- CONFIGURAÇÃO DO SUPABASE ---
 SUPABASE_URL = "https://aaxicngdahpbunwlgjsj.supabase.co"
 # Insira sua chave JWT 'anon' (a chave longa que começa com eyJhbGci...)
-SUPABASE_KEY = "5e76869d-694e-45f5-bffa-f713616b58cf"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFheGljbmdkYWhwYnVud2xnanNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3OTA0NjgsImV4cCI6MjEwNjM2NjQ2OH0.vmwoaiamSSA9fdP1AwCEWf4U1pgBl1wGbjMtPeRSqz8"
 
 # Defina o seu e-mail de Administrador Principal
 ADMIN_EMAIL = "lucasmfujimoto@gmail.com"
