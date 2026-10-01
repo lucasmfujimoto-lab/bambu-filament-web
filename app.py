@@ -31,78 +31,96 @@ st.set_page_config(
     layout="wide",
 )
 
-# --- ESTILIZAÇÃO CSS CUSTOMIZADA ---
+# --- ESTILIZAÇÃO CSS CUSTOMIZADA (FUNDO LARANJA CLARO + CONTRASTE ESCURO) ---
 st.markdown(
     """
     <style>
-    /* Estilo do Fundo e Fontes */
+    /* Fundo Laranja Claro */
     .stApp {
-        background-color: #0B0E14;
-        color: #E2E8F0;
+        background-color: #FFF3E0;
+        color: #2E1C0C;
         font-family: 'Segoe UI', -apple-system, sans-serif;
     }
     
+    /* Esconder cabeçalho padrão do Streamlit */
     header {visibility: hidden;}
     footer {visibility: hidden;}
     
+    /* Titulos e Rótulos principais */
+    h1, h2, h3, h4, h5, h6, label, p, span {
+        color: #2E1C0C !important;
+    }
+
+    /* Cards de Métricas Customizados */
     [data-testid="stMetric"] {
-        background: #151922;
-        border: 1px solid #232D3F;
+        background: #FFFFFF;
+        border: 2px solid #FFE0B2;
         border-radius: 12px;
         padding: 15px 20px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+        box-shadow: 0 4px 12px rgba(230, 81, 0, 0.08);
     }
     
     [data-testid="stMetricLabel"] {
-        color: #A0AEC0 !important;
+        color: #795548 !important;
         font-size: 0.85rem !important;
         font-weight: 700 !important;
         text-transform: uppercase;
     }
     
     [data-testid="stMetricValue"] {
-        color: #00E676 !important;
+        color: #E65100 !important;
         font-size: 1.8rem !important;
         font-weight: 800 !important;
     }
 
+    /* Abas (Tabs) Estilizadas */
     .stTabs [data-baseweb="tab-list"] {
         gap: 10px;
-        background-color: #0B0E14;
+        background-color: #FFF3E0;
     }
 
     .stTabs [data-baseweb="tab"] {
         height: 48px;
-        background-color: #151922;
+        background-color: #FFE0B2;
         border-radius: 8px;
-        color: #A0AEC0;
-        font-weight: 600;
-        border: 1px solid #232D3F;
+        color: #4E342E;
+        font-weight: 700;
+        border: 1px solid #FFCC80;
         padding: 0px 24px;
     }
 
     .stTabs [aria-selected="true"] {
-        background-color: #7C4DFF !important;
+        background-color: #EF6C00 !important;
         color: #FFFFFF !important;
-        border: 1px solid #7C4DFF !important;
+        border: 1px solid #E65100 !important;
     }
 
+    /* Estilo dos Botões */
     .stButton > button {
         border-radius: 8px;
         font-weight: 700;
+        background-color: #EF6C00;
+        color: #FFFFFF !important;
         border: none;
         transition: all 0.2s ease-in-out;
     }
+    
+    .stButton > button:hover {
+        background-color: #E65100;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(230, 81, 0, 0.25);
+    }
 
+    /* Formulários e Entradas */
     div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
-        background-color: #151922 !important;
-        border: 1px solid #232D3F !important;
+        background-color: #FFFFFF !important;
+        border: 1px solid #FFCC80 !important;
         border-radius: 8px !important;
-        color: #FFFFFF !important;
+        color: #2E1C0C !important;
     }
     </style>
     """,
-    unsafe_allow_html=True,  # <--- ALTERADO AQUI
+    unsafe_allow_html=True,
 )
 
 
@@ -140,12 +158,12 @@ data = st.session_state["data"]
 # --- BANNER SUPERIOR ---
 st.markdown(
     """
-    <div style='background: linear-gradient(90deg, #151922 0%, #0B0E14 100%); padding: 20px; border-radius: 12px; border: 1px solid #232D3F; margin-bottom: 20px;'>
-        <h2 style='margin: 0; color: #00E676;'>⚡ BAMBU FILAMENT STUDIO PRO</h2>
-        <p style='margin: 5px 0 0 0; color: #A0AEC0; font-size: 0.9rem;'>Gestão Inteligente de Estoque 3D & Sincronização Cloud</p>
+    <div style='background: linear-gradient(90deg, #FFE0B2 0%, #FFF3E0 100%); padding: 20px; border-radius: 12px; border: 2px solid #FFCC80; margin-bottom: 20px;'>
+        <h2 style='margin: 0; color: #E65100;'>⚡ BAMBU FILAMENT STUDIO PRO</h2>
+        <p style='margin: 5px 0 0 0; color: #5D4037; font-size: 0.95rem; font-weight: 600;'>Gestão Inteligente de Estoque 3D & Sincronização Cloud</p>
     </div>
     """,
-    unsafe_allow_html=True,  # <--- ALTERADO AQUI
+    unsafe_allow_html=True,
 )
 
 # --- DASHBOARD DE MÉTRICAS ---
@@ -162,7 +180,7 @@ m2.metric("Peso Total", f"{total_weight_kg:.2f} kg")
 m3.metric("Valor em Plástico", f"R$ {total_value_brl:.2f}")
 
 status_conn = (
-    f"🟢 Conectado" if data.get("bambu_token") else "🔴 Desconectado"
+    "🟢 Conectado" if data.get("bambu_token") else "🔴 Desconectado"
 )
 m4.metric("Status Bambu Cloud", status_conn)
 
