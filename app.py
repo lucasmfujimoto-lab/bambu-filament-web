@@ -163,7 +163,7 @@ if st.session_state["user"] is None:
                 st.session_state["show_forgot_pass"] = True
                 st.rerun()
 
-       else:
+        else:
             st.markdown("### 🔑 Recuperar Senha")
             st.caption("Digite o seu e-mail para receber as instruções de redefinição de senha.")
             reset_email = st.text_input("Seu E-mail Cadastrado:", key="reset_email")
@@ -173,7 +173,6 @@ if st.session_state["user"] is None:
                 if st.button("📧 Enviar Recuperação", use_container_width=True):
                     if reset_email.strip():
                         try:
-                            # Chamada limpa do reset_password_for_email
                             supabase.auth.reset_password_for_email(
                                 reset_email.strip(),
                                 {"redirect_to": "https://meu-estoque-3d.streamlit.app"}
