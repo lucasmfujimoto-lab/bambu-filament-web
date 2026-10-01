@@ -163,24 +163,25 @@ if st.session_state["user"] is None:
                 st.session_state["show_forgot_pass"] = True
                 st.rerun()
 
-        else:
+       else:
             st.markdown("### 🔑 Recuperar Senha")
-            st.caption("Digite o seu e-mail para receber as instruções de redefinição de senha.")
+            st.caption("Digite o seu e-mail cadastrado no sistema.")
             reset_email = st.text_input("Seu E-mail Cadastrado:", key="reset_email")
 
             col_btn1, col_btn2 = st.columns(2)
             with col_btn1:
-                if st.button("📧 Enviar Recuperação", use_container_width=True):
+                if st.button("📧 Solicitar Redefinição", use_container_width=True):
                     if reset_email.strip():
                         try:
-                            supabase.auth.reset_password_for_email(
-                                reset_email.strip()
-                            )
-                            st.success(f"Instruções enviadas para {reset_email.strip()}! Verifique a sua caixa de entrada e spam.")
+                            # Tenta enviar o e-mail pelo Supabase
+                            supabase.auth.reset_password_for_email(reset_email.strip())
+                            st.success("Se o e-mail estiver cadastrado, as instruções foram enviadas! Verifique sua caixa de entrada.")
                         except Exception as e:
-                            st.error(f"Erro ao solicitar recuperação: {e}")
+                            # Se o Supabase bloquear por chave ou SMTP, exibe instrução alternativa
+                            st.warning("Não foi possível enviar o e-mail automático. Entre em contato com o Administrador do sistema para redefinir sua senha.")
                     else:
-                        st.warning("Por favor, informe o seu e-mail.")
+                        st.warning("Por favor, informe seu e-mail.")
+
             with col_btn2:
                 if st.button("⬅️ Voltar ao Login", use_container_width=True):
                     st.session_state["show_forgot_pass"] = False
