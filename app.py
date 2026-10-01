@@ -174,15 +174,13 @@ if st.session_state["user"] is None:
                     if reset_email.strip():
                         try:
                             supabase.auth.reset_password_for_email(
-                                reset_email.strip(),
-                                {"redirect_to": "https://meu-estoque-3d.streamlit.app"}
+                                reset_email.strip()
                             )
-                            st.success(f"Instruções enviadas para {reset_email.strip()}! Verifique sua caixa de entrada e spam.")
+                            st.success(f"Instruções enviadas para {reset_email.strip()}! Verifique a sua caixa de entrada e spam.")
                         except Exception as e:
                             st.error(f"Erro ao solicitar recuperação: {e}")
                     else:
-                        st.warning("Por favor, informe seu e-mail.")
-
+                        st.warning("Por favor, informe o seu e-mail.")
             with col_btn2:
                 if st.button("⬅️ Voltar ao Login", use_container_width=True):
                     st.session_state["show_forgot_pass"] = False
