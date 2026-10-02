@@ -125,6 +125,51 @@ if "bambu_token" not in st.session_state:
 if "show_forgot_pass" not in st.session_state:
     st.session_state["show_forgot_pass"] = False
 
+# Captura os parâmetros da URL
+query_params = st.query_params
+type_param = query_params.get("type")
+
+# Detecta se veio do link de recuperação de senha do e-mail
+is_reset_flow = (type_param == "recovery")
+
+# ==========================================
+# FLUXO DE REDEFINIÇÃO DE SENHA (LINK DO E-MAIL)
+# ==========================================
+if is_reset_flow:
+    st.markdown(
+        """
+        <div style='text-align: center; padding: 40px 0 20px 0;'>
+            <h1 style='color: #E65100;'>🖨️ Bambu Filament Studio</h1>
+            <p style='color: #5D4037; font-size: 1.1rem;'>Redefinição de Senha</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    _, col_center, _ = st.columns([1, 1.2, 1])
+
+    with col_center:
+        st.markdown("### 🔑 Digite sua Nova Senha")
+        new_pass_input = st.text_input("Nova Senha:", type="password", key="reset_new_pass")
+        confirm_pass_input = st.text_input("Confirme a Nova Senha:", type="password", key="reset_confirm_pass")
+
+        if st.button("Salvar Nova Senha", use_container_width=True):
+            if not new_pass_input or len(new_pass_input) < 6:
+                st.error("A senha deve ter pelo menos 6 caracteres.")
+            elif new_pass_input != confirm_pass_input:
+                st.error("As senhas digitadas não coincidem.")
+            else:
+                try:
+                    supabase.auth.update_user({"password": new_pass_input})
+                    st.success("Senha redefinida com sucesso! Redirecionando para o login...")
+                    st.query_params.clear()
+                    st.session_state["show_forgot_pass"] = False
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Erro ao atualizar senha: {e}")
+
+    st.stop()
+
 # ==========================================
 # TELA DE LOGIN EXCLUSIVA + ESQUECI A SENHA
 # ==========================================
@@ -173,8 +218,11 @@ if st.session_state["user"] is None:
                 if st.button("📧 Solicitar Redefinição", use_container_width=True):
                     if reset_email.strip():
                         try:
-                            supabase.auth.reset_password_for_email(reset_email.strip())
-                            st.success("Se o e-mail estiver cadastrado, as instruções foram enviadas! Verifique sua caixa de entrada.")
+                            supabase.auth.reset_password_for_email(
+                                reset_email.strip(),
+                                {"redirect_to": "https://meu-estoque-3d.streamlit.app?type=recovery"}
+                            )
+                            st.success("Instruções enviadas! Verifique sua caixa de entrada e spam para clicar no link.")
                         except Exception as e:
                             st.warning("Não foi possível enviar o e-mail automático. Entre em contato com o Administrador para redefinir sua senha.")
                     else:
