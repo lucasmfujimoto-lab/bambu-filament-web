@@ -14,7 +14,7 @@ SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 
 # Defina o seu e-mail de Administrador Principal
 ADMIN_EMAIL = "lucasmfujimoto@gmail.com"
-ADMIN_PASSWORD_HARDCODED = "SuaSenhaAqui123"  # <-- ALTERE AQUI PARA A SENHA QUE DESEJAR
+ADMIN_PASSWORD_HARDCODED = "123"  # <-- ALTERE AQUI PARA A SENHA QUE DESEJAR
 
 @st.cache_resource
 def init_supabase() -> Client:
