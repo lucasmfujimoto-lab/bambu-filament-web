@@ -517,6 +517,20 @@ with tab_account:
 # ABA 4: PAINEL ADMIN (APENAS PARA O ADMIN)
 # ==========================================
 if is_admin and tab_admin:
+    # No app.py, dentro da seção if is_admin and tab_admin:
+st.markdown("#### 🔑 Alterar Senha de Usuário")
+user_to_reset = st.selectbox("Selecione o usuário:", [p["email"] for p in profiles if p["email"] != ADMIN_EMAIL])
+admin_new_pass = st.text_input("Nova Senha para este Usuário:", type="password")
+
+if st.button("🔒 Redefinir Senha do Usuário"):
+    if user_to_reset and admin_new_pass:
+        try:
+            # Como admin, você pode atualizar os dados diretamente
+            p_obj = next(p for p in profiles if p["email"] == user_to_reset)
+            supabase.auth.admin.update_user_by_id(p_obj["id"], {"password": admin_new_pass})
+            st.success(f"Senha de {user_to_reset} atualizada com sucesso!")
+        except Exception as e:
+            st.error(f"Erro ao redefinir senha: {e}")
     with tab_admin:
         st.markdown("### ⚙️ Gestão de Usuários (Acesso Admin)")
 
