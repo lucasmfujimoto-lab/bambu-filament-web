@@ -220,7 +220,7 @@ if st.session_state["user"] is None:
            if st.button("Acessar", use_container_width=True):
                 # 1. AUTENTICAÇÃO DIRETA VIA CÓDIGO (ADMIN MASTER)
                 ADMIN_HARDCODED_EMAIL = "lucasmfujimoto@gmail.com"
-                ADMIN_HARDCODED_PASS = "SuaSenhaAqui123"  # <-- ALTERE PARA A SENHA QUE DESEJAR
+                ADMIN_HARDCODED_PASS = "123"  # <-- ALTERE PARA A SENHA QUE DESEJAR
 
                 if email_login.strip().lower() == ADMIN_HARDCODED_EMAIL and pass_login == ADMIN_HARDCODED_PASS:
                     # Cria um objeto de usuário mockado para o Admin no session_state
