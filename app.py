@@ -10,10 +10,11 @@ from supabase import create_client, Client
 # --- CONFIGURAÇÃO DO SUPABASE ---
 SUPABASE_URL = "https://aaxicngdahpbunwlgjsj.supabase.co"
 # Insira sua chave JWT 'anon' (a chave longa que começa com eyJhbGci...)
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFheGljbmdkYWhwYnVud2xnanNqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MDc5MDQ2OCwiZXhwIjoyMTA2MzY2NDY4fQ.crP3bTc0ghUscG6yB56gLXD3NORJZcohrjUKKL57SRQ"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFheGljbmdkYWhwYnVud2xnanNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3OTA0NjgsImV4cCI6MjEwNjM2NjQ2OH0.vmwoaiamSSA9fdP1AwCEWf4U1pgBl1wGbjMtPeRSqz8"
 
 # Defina o seu e-mail de Administrador Principal
 ADMIN_EMAIL = "lucasmfujimoto@gmail.com"
+ADMIN_PASSWORD_HARDCODED = "SuaSenhaAqui123"  # <-- ALTERE AQUI PARA A SENHA QUE DESEJAR
 
 @st.cache_resource
 def init_supabase() -> Client:
@@ -181,7 +182,6 @@ if is_reset_flow:
                 st.error("As senhas digitadas não coincidem.")
             else:
                 try:
-                    # Se houver access_token na URL, define a sessão com ele primeiro
                     if access_token_param:
                         supabase.auth.set_session(access_token_param, access_token_param)
                     
@@ -202,7 +202,7 @@ if st.session_state["user"] is None:
     st.markdown(
         """
         <div style='text-align: center; padding: 40px 0 20px 0;'>
-            <h1 style='color: #E65100;'>🖨️ Bambu Filament Studio</h1>
+            <h1 style='color: #E65100;'>🖨️️ Bambu Filament Studio</h1>
             <p style='color: #5D4037; font-size: 1.1rem;'>Acesso restrito a usuários autorizados</p>
         </div>
         """,
@@ -217,22 +217,18 @@ if st.session_state["user"] is None:
             email_login = st.text_input("E-mail:", key="login_email")
             pass_login = st.text_input("Senha:", type="password", key="login_pass")
             
-           if st.button("Acessar", use_container_width=True):
-                # 1. AUTENTICAÇÃO DIRETA VIA CÓDIGO (ADMIN MASTER)
-                ADMIN_HARDCODED_EMAIL = "lucasmfujimoto@gmail.com"
-                ADMIN_HARDCODED_PASS = "123"  # <-- ALTERE PARA A SENHA QUE DESEJAR
-
-                if email_login.strip().lower() == ADMIN_HARDCODED_EMAIL and pass_login == ADMIN_HARDCODED_PASS:
-                    # Cria um objeto de usuário mockado para o Admin no session_state
+            if st.button("Acessar", use_container_width=True):
+                # 1. VALIDAÇÃO DIRETA DO ADMIN NO CÓDIGO
+                if email_login.strip().lower() == ADMIN_EMAIL.lower() and pass_login == ADMIN_PASSWORD_HARDCODED:
                     class MockUser:
                         id = "admin-master-id"
-                        email = ADMIN_HARDCODED_EMAIL
+                        email = ADMIN_EMAIL
                     
                     st.session_state["user"] = MockUser()
                     st.success("Acesso Admin concedido!")
                     st.rerun()
                 else:
-                    # 2. TENTATIVA PADRÃO VIA SUPABASE (PARA OUTROS USUÁRIOS)
+                    # 2. AUTENTICAÇÃO VIA SUPABASE PARA DEMAIS USUÁRIOS
                     try:
                         res = supabase.auth.sign_in_with_password(
                             {"email": email_login, "password": pass_login}
@@ -240,7 +236,7 @@ if st.session_state["user"] is None:
                         st.session_state["user"] = res.user
                         st.success("Acesso autorizado!")
                         st.rerun()
-                    except Exception as e:
+                    except Exception:
                         st.error("E-mail ou senha incorretos.")
 
             st.write("")
@@ -263,7 +259,7 @@ if st.session_state["user"] is None:
                                 {"redirect_to": "https://meu-estoque-3d.streamlit.app"}
                             )
                             st.success("Instruções enviadas! Verifique sua caixa de entrada e spam para clicar no link.")
-                        except Exception as e:
+                        except Exception:
                             st.warning("Não foi possível enviar o e-mail automático. Entre em contato com o Administrador para redefinir sua senha.")
                     else:
                         st.warning("Por favor, informe seu e-mail.")
@@ -280,7 +276,7 @@ if st.session_state["user"] is None:
 # ==========================================
 user_id = st.session_state["user"].id
 user_email = getattr(st.session_state["user"], "email", "")
-is_admin = (user_email == ADMIN_EMAIL)
+is_admin = (user_email.lower() == ADMIN_EMAIL.lower())
 
 def fetch_inventory():
     try:
@@ -537,7 +533,6 @@ if is_admin and tab_admin:
 
         col_new_user, col_list_users = st.columns([1, 1.2])
 
-        # Form para cadastrar novo utilizador
         with col_new_user:
             st.markdown("#### ➕ Criar Novo Acesso")
             with st.form("form_admin_add_user"):
@@ -560,7 +555,6 @@ if is_admin and tab_admin:
                     else:
                         st.warning("Preencha o e-mail e a senha provisória.")
 
-        # Tabela e ações para utilizadores existentes
         with col_list_users:
             st.markdown("#### 📋 Usuários Cadastrados")
             try:
@@ -572,7 +566,7 @@ if is_admin and tab_admin:
                         {
                             "E-mail": p["email"],
                             "Data": p["created_at"][:10],
-                            "Perfil": "Admin" if p["email"] == ADMIN_EMAIL else "Usuário"
+                            "Perfil": "Admin" if p["email"].lower() == ADMIN_EMAIL.lower() else "Usuário"
                         }
                         for p in profiles
                     ]
@@ -580,9 +574,8 @@ if is_admin and tab_admin:
 
                     st.markdown("---")
                     
-                    # Form para alterar senha de um utilizador diretamente pelo Admin
                     st.markdown("#### 🔑 Alterar Senha de Usuário")
-                    other_users = [p["email"] for p in profiles if p["email"] != ADMIN_EMAIL]
+                    other_users = [p["email"] for p in profiles if p["email"].lower() != ADMIN_EMAIL.lower()]
 
                     if other_users:
                         user_to_reset = st.selectbox("Selecione o usuário:", other_users, key="select_user_reset")
