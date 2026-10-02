@@ -4,6 +4,7 @@ import uuid
 from PIL import Image
 import requests
 import streamlit as st
+import streamlit.components.v1 as components
 from supabase import create_client, Client
 
 # --- CONFIGURAÇÃO DO SUPABASE ---
@@ -42,6 +43,26 @@ st.set_page_config(
     page_title="Bambu Filament Studio",
     page_icon="🖨️",
     layout="wide",
+)
+
+# JavaScript para converter o hash (#access_token=...) da URL em Query Param (?type=recovery)
+components.html(
+    """
+    <script>
+    if (window.location.hash.includes('access_token=') || window.location.hash.includes('type=recovery')) {
+        let hash = window.location.hash.substring(1);
+        let params = new URLSearchParams(hash);
+        let accessToken = params.get('access_token');
+        let refresh_token = params.get('refresh_token');
+        let type = params.get('type') || 'recovery';
+        
+        if (accessToken) {
+            window.location.href = window.location.origin + window.location.pathname + '?type=' + type + '&access_token=' + accessToken;
+        }
+    }
+    </script>
+    """,
+    height=0,
 )
 
 # --- ESTILIZAÇÃO CSS (LARANJA SUAVE) ---
@@ -128,9 +149,9 @@ if "show_forgot_pass" not in st.session_state:
 # Captura os parâmetros da URL
 query_params = st.query_params
 type_param = query_params.get("type")
+access_token_param = query_params.get("access_token")
 
-# Detecta se veio do link de recuperação de senha do e-mail
-is_reset_flow = (type_param == "recovery")
+is_reset_flow = (type_param == "recovery" or access_token_param is not None)
 
 # ==========================================
 # FLUXO DE REDEFINIÇÃO DE SENHA (LINK DO E-MAIL)
@@ -160,8 +181,12 @@ if is_reset_flow:
                 st.error("As senhas digitadas não coincidem.")
             else:
                 try:
+                    # Se houver access_token na URL, define a sessão com ele primeiro
+                    if access_token_param:
+                        supabase.auth.set_session(access_token_param, access_token_param)
+                    
                     supabase.auth.update_user({"password": new_pass_input})
-                    st.success("Senha redefinida com sucesso! Redirecionando para o login...")
+                    st.success("Senha redefinida com sucesso! Redirecionando para a tela de login...")
                     st.query_params.clear()
                     st.session_state["show_forgot_pass"] = False
                     st.rerun()
@@ -220,7 +245,7 @@ if st.session_state["user"] is None:
                         try:
                             supabase.auth.reset_password_for_email(
                                 reset_email.strip(),
-                                {"redirect_to": "https://meu-estoque-3d.streamlit.app?type=recovery"}
+                                {"redirect_to": "https://meu-estoque-3d.streamlit.app"}
                             )
                             st.success("Instruções enviadas! Verifique sua caixa de entrada e spam para clicar no link.")
                         except Exception as e:
