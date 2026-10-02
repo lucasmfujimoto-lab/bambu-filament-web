@@ -217,16 +217,31 @@ if st.session_state["user"] is None:
             email_login = st.text_input("E-mail:", key="login_email")
             pass_login = st.text_input("Senha:", type="password", key="login_pass")
             
-            if st.button("Acessar", use_container_width=True):
-                try:
-                    res = supabase.auth.sign_in_with_password(
-                        {"email": email_login, "password": pass_login}
-                    )
-                    st.session_state["user"] = res.user
-                    st.success("Acesso autorizado!")
+           if st.button("Acessar", use_container_width=True):
+                # 1. AUTENTICAÇÃO DIRETA VIA CÓDIGO (ADMIN MASTER)
+                ADMIN_HARDCODED_EMAIL = "lucasmfujimoto@gmail.com"
+                ADMIN_HARDCODED_PASS = "SuaSenhaAqui123"  # <-- ALTERE PARA A SENHA QUE DESEJAR
+
+                if email_login.strip().lower() == ADMIN_HARDCODED_EMAIL and pass_login == ADMIN_HARDCODED_PASS:
+                    # Cria um objeto de usuário mockado para o Admin no session_state
+                    class MockUser:
+                        id = "admin-master-id"
+                        email = ADMIN_HARDCODED_EMAIL
+                    
+                    st.session_state["user"] = MockUser()
+                    st.success("Acesso Admin concedido!")
                     st.rerun()
-                except Exception as e:
-                    st.error("E-mail ou senha incorretos.")
+                else:
+                    # 2. TENTATIVA PADRÃO VIA SUPABASE (PARA OUTROS USUÁRIOS)
+                    try:
+                        res = supabase.auth.sign_in_with_password(
+                            {"email": email_login, "password": pass_login}
+                        )
+                        st.session_state["user"] = res.user
+                        st.success("Acesso autorizado!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error("E-mail ou senha incorretos.")
 
             st.write("")
             if st.button("❓ Esqueci minha senha", use_container_width=True):
