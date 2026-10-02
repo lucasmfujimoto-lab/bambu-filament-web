@@ -517,25 +517,12 @@ with tab_account:
 # ABA 4: PAINEL ADMIN (APENAS PARA O ADMIN)
 # ==========================================
 if is_admin and tab_admin:
-    # No app.py, dentro da seção if is_admin and tab_admin:
-st.markdown("#### 🔑 Alterar Senha de Usuário")
-user_to_reset = st.selectbox("Selecione o usuário:", [p["email"] for p in profiles if p["email"] != ADMIN_EMAIL])
-admin_new_pass = st.text_input("Nova Senha para este Usuário:", type="password")
-
-if st.button("🔒 Redefinir Senha do Usuário"):
-    if user_to_reset and admin_new_pass:
-        try:
-            # Como admin, você pode atualizar os dados diretamente
-            p_obj = next(p for p in profiles if p["email"] == user_to_reset)
-            supabase.auth.admin.update_user_by_id(p_obj["id"], {"password": admin_new_pass})
-            st.success(f"Senha de {user_to_reset} atualizada com sucesso!")
-        except Exception as e:
-            st.error(f"Erro ao redefinir senha: {e}")
     with tab_admin:
         st.markdown("### ⚙️ Gestão de Usuários (Acesso Admin)")
 
         col_new_user, col_list_users = st.columns([1, 1.2])
 
+        # Form para cadastrar novo utilizador
         with col_new_user:
             st.markdown("#### ➕ Criar Novo Acesso")
             with st.form("form_admin_add_user"):
@@ -558,6 +545,7 @@ if st.button("🔒 Redefinir Senha do Usuário"):
                     else:
                         st.warning("Preencha o e-mail e a senha provisória.")
 
+        # Tabela e ações para utilizadores existentes
         with col_list_users:
             st.markdown("#### 📋 Usuários Cadastrados")
             try:
@@ -575,18 +563,37 @@ if st.button("🔒 Redefinir Senha do Usuário"):
                     ]
                     st.dataframe(user_table, use_container_width=True)
 
-                    st.markdown("#### 🗑️ Excluir Usuário")
-                    other_users = [p["email"] for p in profiles if p["email"] != ADMIN_EMAIL]
+                    st.markdown("---")
                     
+                    # Form para alterar senha de um utilizador diretamente pelo Admin
+                    st.markdown("#### 🔑 Alterar Senha de Usuário")
+                    other_users = [p["email"] for p in profiles if p["email"] != ADMIN_EMAIL]
+
                     if other_users:
-                        user_to_delete = st.selectbox("Selecione o e-mail para revogar:", other_users)
+                        user_to_reset = st.selectbox("Selecione o usuário:", other_users, key="select_user_reset")
+                        admin_new_pass = st.text_input("Nova Senha para este Usuário:", type="password", key="input_admin_new_pass")
+
+                        if st.button("🔒 Redefinir Senha do Usuário"):
+                            if user_to_reset and admin_new_pass:
+                                try:
+                                    p_obj = next(p for p in profiles if p["email"] == user_to_reset)
+                                    supabase.auth.admin.update_user_by_id(p_obj["id"], {"password": admin_new_pass})
+                                    st.success(f"Senha de {user_to_reset} atualizada com sucesso!")
+                                except Exception as e:
+                                    st.error(f"Erro ao redefinir senha: {e}")
+                            else:
+                                st.warning("Informe a nova senha.")
+
+                        st.markdown("---")
+                        st.markdown("#### 🗑️ Excluir Usuário")
+                        user_to_delete = st.selectbox("Selecione o e-mail para revogar:", other_users, key="select_user_delete")
                         if st.button("🔴 Remover Acesso"):
                             p_obj = next(p for p in profiles if p["email"] == user_to_delete)
                             supabase.table("profiles").delete().eq("id", p_obj["id"]).execute()
                             st.success(f"Acesso de {user_to_delete} removido!")
                             st.rerun()
                     else:
-                        st.caption("Nenhum usuário secundário para excluir.")
+                        st.caption("Nenhum usuário secundário cadastrado.")
                 else:
                     st.info("Nenhum usuário cadastrado na base de dados.")
             except Exception as e:
