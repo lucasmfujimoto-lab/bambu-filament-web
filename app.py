@@ -163,7 +163,7 @@ if st.session_state["user"] is None:
                 st.session_state["show_forgot_pass"] = True
                 st.rerun()
 
-       else:
+        else:
             st.markdown("### 🔑 Recuperar Senha")
             st.caption("Digite o seu e-mail cadastrado no sistema.")
             reset_email = st.text_input("Seu E-mail Cadastrado:", key="reset_email")
@@ -173,12 +173,10 @@ if st.session_state["user"] is None:
                 if st.button("📧 Solicitar Redefinição", use_container_width=True):
                     if reset_email.strip():
                         try:
-                            # Tenta enviar o e-mail pelo Supabase
                             supabase.auth.reset_password_for_email(reset_email.strip())
                             st.success("Se o e-mail estiver cadastrado, as instruções foram enviadas! Verifique sua caixa de entrada.")
                         except Exception as e:
-                            # Se o Supabase bloquear por chave ou SMTP, exibe instrução alternativa
-                            st.warning("Não foi possível enviar o e-mail automático. Entre em contato com o Administrador do sistema para redefinir sua senha.")
+                            st.warning("Não foi possível enviar o e-mail automático. Entre em contato com o Administrador para redefinir sua senha.")
                     else:
                         st.warning("Por favor, informe seu e-mail.")
 
